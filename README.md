@@ -6,9 +6,10 @@
 
 | 项目 | 说明 |
 |------|------|
-| **语言** | Python 3.9 |
+| **语言** | Python 3.11 |
 | **运行方式** | GitHub Actions 定时任务（每天北京时间 12:00） |
 | **推送渠道** | 微信公众号模板消息 |
+| **许可证** | MIT License |
 | **作者** | porter-47 |
 
 ## 核心功能
@@ -41,11 +42,12 @@
 ## 文件结构
 
 ```
-weixin/
+wechat-daily-push/
 ├── main.py              # 主程序
 ├── cityinfo.py          # 城市信息配置（300+ 城市）
 ├── config.txt           # 用户配置文件（需自行填写）
 ├── requirements.txt     # Python 依赖
+├── LICENSE              # MIT 许可证
 ├── .gitignore           # Git 忽略文件
 └── .github/
     └── workflows/
@@ -61,7 +63,7 @@ weixin/
   "app_id": "你的公众号appId",
   "app_secret": "你的公众号appSecret",
   "template_id": "模板消息id",
-  "user": ["接收者openid"],
+  "user": ["接收者openid1", "接收者openid2"],
   
   "province": "省份",
   "city": "城市",
@@ -86,7 +88,7 @@ weixin/
 | birthday1/2 | 生日配置 | name + birthday |
 | love_date | 恋爱纪念日 | 2022-06-16 |
 
-**农历生日：** 在日期前加 `r` 前缀，如 `"r2000-12-31"`
+**农历生日：** 在年份前加 `r` 前缀，如 `"r2000-12-31"`
 
 ## 部署步骤
 
@@ -98,7 +100,7 @@ weixin/
 ### 2. Fork 或克隆项目
 ```bash
 git clone https://github.com/porter-47/wechat-daily-push.git
-cd weixin
+cd wechat-daily-push
 ```
 
 ### 3. 修改配置
@@ -140,8 +142,8 @@ schedule:
 ## 依赖说明
 
 ```
-requests==2.28.1    # HTTP 请求
-zhdate==0.1         # 农历日期处理
+requests>=2.28.0    # HTTP 请求
+zhdate>=0.1         # 农历日期处理
 ```
 
 ## 注意事项
@@ -162,7 +164,7 @@ zhdate==0.1         # 农历日期处理
 
 ## 许可证
 
-MIT License
+MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 作者
 
