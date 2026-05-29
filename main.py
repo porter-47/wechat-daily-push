@@ -6,7 +6,18 @@ from datetime import datetime, date
 from zhdate import ZhDate
 import sys
 import os
+import json
+import logging
 
+# ============================================================
+# 日志配置
+# ============================================================
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # ============================================================
 # 飞花令关键词 & 天气图标
@@ -73,14 +84,16 @@ def get_poetry():
     for src in api_sources:
         try:
             if src["method"] == "get":
-                r = get(src["url"], headers={"User-Agent": "Mozilla/5.0"}, timeout=8, verify=False)
+                r = get(src["url"], headers={"User-Agent": "Mozilla/5.0"}, timeout=8)
             if r.status_code == 200:
                 verse, origin = src["parse"](r.json())
                 if verse:
                     return verse.strip(), origin, keyword
-        except Exception:
+        except Exception as e:
+            logger.warning(f"诗词 API 请求失败: {e}")
             continue
 
+    logger.warning("所有诗词 API 均失败，使用默认诗词")
     return "山重水复疑无路，柳暗花明又一村。", "《游山西村》宋·陆游", "山"
 
 
@@ -88,51 +101,64 @@ def get_poetry():
 # 微信 API
 # ============================================================
 
-def get_access_token():
+def get_access_token(config):
+    """获取微信 access_token"""
     app_id = config["app_id"]
     app_secret = config["app_secret"]
-    post_url = ("https://api.weixin.qq.com/cgi-bin/token"
-                "?grant_type=client_credential&appid={}&secret={}"
-                .format(app_id, app_secret))
+    post_url = (
+        "https://api.weixin.qq.com/cgi-bin/token"
+        "?grant_type=client_credential&appid={}&secret={}"
+        .format(app_id, app_secret)
+    )
     try:
-        access_token = get(post_url).json()['access_token']
-    except KeyError:
-        print("获取access_token失败，请检查app_id和app_secret是否正确")
-        os.system("pause")
+        response = get(post_url, timeout=10)
+        response.raise_for_status()
+        result = response.json()
+        if "access_token" not in result:
+            logger.error(f"获取 access_token 失败: {result}")
+            sys.exit(1)
+        return result["access_token"]
+    except Exception as e:
+        logger.error(f"获取 access_token 异常: {e}")
         sys.exit(1)
-    return access_token
 
 
 def get_weather(province, city):
+    """获取天气信息"""
     try:
         city_id = cityinfo.cityInfo[province][city]["AREAID"]
     except KeyError:
-        print("推送消息失败，请检查省份或城市是否正确")
-        os.system("pause")
+        logger.error(f"找不到城市: {province} - {city}")
         sys.exit(1)
 
-    t = (int(round(time() * 1000)))
+    t = int(round(time() * 1000))
     headers = {
         "Referer": f"http://www.weather.com.cn/weather1d/{city_id}.shtml",
-        'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                       'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36')
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        )
     }
     url = f"http://d1.weather.com.cn/dingzhi/{city_id}.html?_={t}"
-    response = get(url, headers=headers)
-    response.encoding = "utf-8"
-    response_data = response.text.split(";")[0].split("=")[-1]
+    
     try:
-        response_json = eval(response_data)
+        response = get(url, headers=headers, timeout=10)
+        response.encoding = "utf-8"
+        response_data = response.text.split(";")[0].split("=")[-1]
+        response_json = json.loads(response_data)
         weatherinfo = response_json["weatherinfo"]
         weather = weatherinfo["weather"]
         temp = weatherinfo["temp"].rstrip("℃")
         tempn = weatherinfo["tempn"].rstrip("℃")
-    except Exception:
+    except Exception as e:
+        logger.warning(f"获取天气失败: {e}")
         weather, temp, tempn = "未知", "--", "--"
+    
     return weather, temp, tempn
 
 
 def get_birthday(birthday, year, today):
+    """计算生日倒计时"""
     birthday_year = birthday.split("-")[0]
     if birthday_year[0] == "r":
         r_mouth = int(birthday.split("-")[1])
@@ -161,11 +187,12 @@ def get_birthday(birthday, year, today):
 
 
 # ============================================================
-# 新模板消息发送
+# 模板消息发送
 # ============================================================
 
 def send_message(to_user, access_token, city_name, weather, max_temperature,
-                 min_temperature, verse, origin, keyword):
+                 min_temperature, verse, origin, keyword, config):
+    """发送微信模板消息"""
     week_list = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
     year = localtime().tm_year
     month = localtime().tm_mon
@@ -207,10 +234,14 @@ def send_message(to_user, access_token, city_name, weather, max_temperature,
     birth_nearest_days = 9999
     for k, v in config.items():
         if k.startswith("birth"):
-            d = int(get_birthday(v["birthday"], year, today))
-            if d < birth_nearest_days:
-                birth_nearest_days = d
-                birth_nearest = v
+            try:
+                d = int(get_birthday(v["birthday"], year, today))
+                if d < birth_nearest_days:
+                    birth_nearest_days = d
+                    birth_nearest = v
+            except Exception as e:
+                logger.warning(f"计算生日失败: {e}")
+    
     if birth_nearest:
         if birth_nearest_days == 0:
             love_str = f"今天是{birth_nearest['name']}的生日，生日快乐！"
@@ -240,25 +271,34 @@ def send_message(to_user, access_token, city_name, weather, max_temperature,
     }
 
     headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                       'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36')
+        "Content-Type": "application/json",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36"
+        )
     }
-    resp = post(url="https://api.weixin.qq.com/cgi-bin/message/template/send"
-                     "?access_token={}".format(access_token),
-                headers=headers, json=data).json()
+    
+    try:
+        resp = post(
+            url=f"https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={access_token}",
+            headers=headers,
+            json=data,
+            timeout=10
+        ).json()
 
-    errcode = resp.get("errcode", -1)
-    if errcode == 0:
-        print(f"推送成功 → {to_user}")
-    elif errcode == 40037:
-        print("推送失败：模板id不正确")
-    elif errcode == 40036:
-        print("推送失败：模板id为空")
-    elif errcode == 40003:
-        print("推送失败：微信号不正确")
-    else:
-        print(f"推送失败: {resp}")
+        errcode = resp.get("errcode", -1)
+        if errcode == 0:
+            logger.info(f"推送成功 → {to_user}")
+        elif errcode == 40037:
+            logger.error("推送失败：模板id不正确")
+        elif errcode == 40036:
+            logger.error("推送失败：模板id为空")
+        elif errcode == 40003:
+            logger.error("推送失败：微信号不正确")
+        else:
+            logger.error(f"推送失败: {resp}")
+    except Exception as e:
+        logger.error(f"发送消息异常: {e}")
 
 
 # ============================================================
@@ -268,23 +308,25 @@ def send_message(to_user, access_token, city_name, weather, max_temperature,
 if __name__ == "__main__":
     try:
         with open("config.txt", encoding="utf-8") as f:
-            config = eval(f.read())
+            config = json.loads(f.read())
     except FileNotFoundError:
-        print("推送失败，config.txt 不存在")
-        os.system("pause")
+        logger.error("推送失败，config.txt 不存在")
         sys.exit(1)
-    except SyntaxError:
-        print("推送失败，config.txt 格式错误")
-        os.system("pause")
+    except json.JSONDecodeError as e:
+        logger.error(f"推送失败，config.txt 格式错误: {e}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"读取配置文件失败: {e}")
         sys.exit(1)
 
-    accessToken = get_access_token()
+    accessToken = get_access_token(config)
     users = config["user"]
     province, city = config["province"], config["city"]
     weather, max_temp, min_temp = get_weather(province, city)
     verse, origin, keyword = get_poetry()
 
+    logger.info(f"开始推送，共 {len(users)} 个用户")
     for user in users:
         send_message(user, accessToken, city, weather, max_temp, min_temp,
-                     verse, origin, keyword)
-    os.system("pause")
+                     verse, origin, keyword, config)
+    logger.info("推送完成")
