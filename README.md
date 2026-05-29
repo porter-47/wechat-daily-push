@@ -44,9 +44,8 @@
 weixin/
 ├── main.py              # 主程序
 ├── cityinfo.py          # 城市信息配置（300+ 城市）
-├── config.txt           # 用户配置文件
+├── config.txt           # 用户配置文件（需自行填写）
 ├── requirements.txt     # Python 依赖
-├── 命令.txt             # Git 常用命令
 ├── .gitignore           # Git 忽略文件
 └── .github/
     └── workflows/
@@ -55,28 +54,39 @@ weixin/
 
 ## 配置说明
 
-编辑 `config.txt` 文件：
+编辑 `config.txt` 文件，填入你的信息：
 
-```python
+```json
 {
-  # 公众号配置
   "app_id": "你的公众号appId",
   "app_secret": "你的公众号appSecret",
   "template_id": "模板消息id",
-  "user": ["接收者openid1", "接收者openid2"],
-
-  # 信息配置
-  "province": "湖北",
-  "city": "武汉",
+  "user": ["接收者openid"],
   
-  # 生日配置（支持公历和农历）
-  "birthday1": {"name": "张三", "birthday": "2001-07-20"},
-  "birthday2": {"name": "李四", "birthday": "r2000-12-31"},  # r 前缀表示农历
+  "province": "省份",
+  "city": "城市",
   
-  # 恋爱纪念日
-  "love_date": "2022-06-16"
+  "birthday1": {"name": "姓名", "birthday": "2000-01-01"},
+  "birthday2": {"name": "姓名", "birthday": "r2000-12-31"},
+  
+  "love_date": "2022-01-01"
 }
 ```
+
+**配置项说明：**
+
+| 配置项 | 说明 | 示例 |
+|--------|------|------|
+| app_id | 公众号 appId | wx1234567890 |
+| app_secret | 公众号 appSecret | abcdef123456 |
+| template_id | 模板消息 ID | xyz123... |
+| user | 接收者 openid 列表 | ["openid1", "openid2"] |
+| province | 所在省份 | 湖北 |
+| city | 所在城市 | 武汉 |
+| birthday1/2 | 生日配置 | name + birthday |
+| love_date | 恋爱纪念日 | 2022-06-16 |
+
+**农历生日：** 在日期前加 `r` 前缀，如 `"r2000-12-31"`
 
 ## 部署步骤
 
@@ -85,9 +95,10 @@ weixin/
 - 获取 `app_id` 和 `app_secret`
 - 创建模板消息，获取 `template_id`
 
-### 2. Fork 项目
+### 2. Fork 或克隆项目
 ```bash
 git clone https://github.com/porter-47/weixin.git
+cd weixin
 ```
 
 ### 3. 修改配置
@@ -140,6 +151,7 @@ zhdate==0.1         # 农历日期处理
 3. **用户关注**：接收者需要关注公众号才能收到消息
 4. **API 限制**：微信模板消息有每日发送限制
 5. **诗词 API**：使用了多个备用源，确保稳定性
+6. **配置安全**：`config.txt` 包含敏感信息，请勿公开分享
 
 ## 诗词 API 源
 
