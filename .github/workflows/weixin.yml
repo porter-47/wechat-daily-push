@@ -3,8 +3,8 @@ name: weixin
 on:
   workflow_dispatch:
   schedule:
-    # 北京时间中午 12:00（UTC 4:00）
-    - cron: '0 4 * * *'
+    # 北京时间 0:00（UTC 16:00，注意是前一天的 UTC 时间）
+    - cron: '0 16 * * *'
 
 jobs:
   build:
