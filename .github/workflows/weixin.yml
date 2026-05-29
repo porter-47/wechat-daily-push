@@ -3,8 +3,10 @@ name: weixin
 on:
   workflow_dispatch:
   schedule:
-    # 北京时间 0:00（UTC 16:00，注意是前一天的 UTC 时间）
-    - cron: '0 16 * * *'
+    # 北京时间 8:00（UTC 0:00）
+    # GitHub Actions 调度可能有 5-15 分钟延迟
+    # 实际收到时间可能在 8:00-8:15 之间
+    - cron: '0 0 * * *'
 
 jobs:
   build:
