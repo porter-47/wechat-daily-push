@@ -97,7 +97,7 @@ weixin/
 
 ### 2. Fork 或克隆项目
 ```bash
-git clone https://github.com/porter-47/weixin.git
+git clone https://github.com/porter-47/wechat-daily-push.git
 cd weixin
 ```
 
@@ -167,4 +167,4 @@ MIT License
 ## 作者
 
 - GitHub: [porter-47](https://github.com/porter-47)
-- 项目地址: https://github.com/porter-47/weixin
+- 项目地址: https://github.com/porter-47/wechat-daily-push
