@@ -24,5 +24,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Create config from secrets
+        run: |
+          # 从 GitHub Secrets 读取用户ID并转换为JSON数组
+          USER_IDS_JSON=$(echo '${{ secrets.USER_IDS }}' | tr ',' '\n' | sed 's/^/"/;s/$/"/' | tr '\n' ',' | sed 's/,$//')
+          
+          cat > config.txt << EOF
+          {
+            "app_id": "${{ secrets.APP_ID }}",
+            "app_secret": "${{ secrets.APP_SECRET }}",
+            "template_id": "${{ secrets.TEMPLATE_ID }}",
+            "user": [${USER_IDS_JSON}],
+            "province": "浙江",
+            "city": "杭州",
+            "birthday1": {"name": "凯凯咪", "birthday": "2001-07-20"},
+            "birthday2": {"name": "热热咪", "birthday": "2000-12-31"},
+            "love_date": "2022-06-16"
+          }
+          EOF
+          
+          echo "Config file created successfully"
+      
       - name: Run weixin push
         run: python main.py

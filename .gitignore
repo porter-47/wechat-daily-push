@@ -1,1 +1,29 @@
+# 敏感配置文件
+config.txt
+config.json
+.env
+*.key
+*.pem
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup
